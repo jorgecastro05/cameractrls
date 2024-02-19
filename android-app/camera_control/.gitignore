@@ -1,7 +1,3 @@
-__pycache__
-rust
-.venv
-
 # Miscellaneous
 *.class
 *.log
