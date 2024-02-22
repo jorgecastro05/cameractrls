@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 from flask import Flask, request
+from flask import send_from_directory 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import cameractrls
 
 # Insta360 Link Options
@@ -20,11 +23,24 @@ properties = {
 
 
 app = Flask(__name__)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
+
+
+@app.route("/")
+def index():
+    return send_from_directory()
+    return render_template("/", 'android-app/camera_control/build/web/')
 
 @app.route("/props")
 def print_properties():
     return properties
 
+@limiter.limit("1 per minute")
 @app.route("/pan",methods=['GET'])
 def pan():
     args = request.args

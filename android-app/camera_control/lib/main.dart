@@ -1,29 +1,20 @@
-import 'package:english_words/english_words.dart';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 
 
-void httpPan(double value) async {
-  String urlApi = 'http://192.168.10.106:5000';
-  String operation = '/tilt?value=$value';
-  final response = await http.get(Uri.parse(urlApi + operation));
-  if (response.statusCode == 200) {
-    // If the server did return a 200 OK response,
-    // then parse the JSON.\
-    print(response);
-  } else {
-    // If the server did not return a 200 OK response,
-    // then throw an exception.
-    throw Exception('Failed to load set value');
-  }
+Future<Map<String, dynamic>> fetchConfig(String urlApi) async{
+  final response = await http
+      .get(Uri.parse('$urlApi/props'));
+      return jsonDecode(response.body) as Map<String, dynamic>;
 }
 
 
 void main() {
   runApp(const MyApp());
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -44,22 +35,29 @@ class MyApp extends StatelessWidget {
 }
 
 class MyAppState extends ChangeNotifier {
-  var current = WordPair.random();
+  double panSliderValue = 0;
+  String urlApi = 'http://localhost:5000';
+  late Future<Map<String, dynamic>> configuration;
 
-  void getNext() {
-    current = WordPair.random();
-    notifyListeners();
+  void setConfig(Future<Map<String, dynamic>> config){
+      configuration = config;
+   
   }
 
-  var favorites = <WordPair>[];
-
-  void toggleFavorite() {
-    if (favorites.contains(current)) {
-      favorites.remove(current);
+  void pan(double value) async {
+    panSliderValue = value;
+    String operation = '/pan?value=$panSliderValue';
+    print(Uri.parse(urlApi + operation));
+    final response = await http.get(Uri.parse(urlApi + operation));
+    if (response.statusCode == 200) {
+      // If the server did return a 200 OK response,
+      // then parse the JSON.\
+      notifyListeners();
     } else {
-      favorites.add(current);
+      // If the server did not return a 200 OK response,
+      // then throw an exception.
+      throw Exception('Failed to load set value');
     }
-    notifyListeners();
   }
 }
 
@@ -70,21 +68,32 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   var selectedIndex = 0;
+  String urlApi = 'http://localhost:5000';
+  late Future<Map<String, dynamic>> config;
+
+  @override
+  void initState() {
+    super.initState();
+    config = fetchConfig(urlApi);
+  }
 
   @override
   Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+    appState.setConfig(config);
+
     Widget page;
     switch (selectedIndex) {
       case 0:
-        page = GeneratorPage();
+        page = ControlPage();
       case 1:
-        page = FavoritesPage();
+        page = ConfigPage();
       default:
         throw UnimplementedError('no widget for $selectedIndex');
     }
 
     return LayoutBuilder(builder: (context, constrains) {
-      return Scaffold ( 
+      return Scaffold(
           body: Row(
         children: [
           SafeArea(
@@ -94,7 +103,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 NavigationRailDestination(
                     icon: Icon(Icons.home), label: Text('Home')),
                 NavigationRailDestination(
-                    icon: Icon(Icons.favorite), label: Text('Favorites'))
+                    icon: Icon(Icons.settings), label: Text('Settings'))
               ],
               selectedIndex: selectedIndex,
               onDestinationSelected: (value) {
@@ -116,81 +125,47 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class GeneratorPage extends StatelessWidget {
+class ControlPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
-    var pair = appState.current;
+    double sliderValue = appState.panSliderValue;
 
-    IconData icon;
-    if (appState.favorites.contains(pair)) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_border;
-    }
 
     return Center(
-      child: Column (
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
         children: [
-          BigCard(pair: pair),
           SizedBox(height: 10),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                  onPressed: () {
-                    appState.toggleFavorite();
-                  },
-                  icon: Icon(icon),
-                  label: Text('Like')),
-              SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  appState.getNext();
-                },
-                child: Text('Next'),
-              ),
-             
-            ],
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-               const SliderExample(),
-            ],
-          )
+          BigCard(sliderValue: sliderValue),
+          SliderPan(),
         ],
       ),
-  
     );
   }
 }
 
-class SliderExample extends StatefulWidget {
-  const SliderExample({super.key});
+class SliderPan extends StatefulWidget {
+  const SliderPan({super.key});
 
   @override
-  State<SliderExample> createState() => _SliderExampleState();
+  State<SliderPan> createState() => _SliderPanState();
 }
 
-class _SliderExampleState extends State<SliderExample> {
-  double _currentSliderValue = 0;
-
+class _SliderPanState extends State<SliderPan> {
+  
   @override
   Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+    var currentSliderValue = appState.panSliderValue;
     return Slider(
-        value: _currentSliderValue,
-        min: -20,
-        max: 20,
-        divisions: 20,
-        label: _currentSliderValue.round().toString(),
-        onChanged: (double value) {
-          setState(() {
-            _currentSliderValue = value;
-          });
-          httpPan(value);
-        },
+      value: currentSliderValue,
+      min: -20,
+      max: 20,
+      divisions: 20,
+      label: currentSliderValue.round().toString(),
+      onChanged: (double value) {
+        appState.pan(value);
+      },
     );
   }
 }
@@ -198,10 +173,10 @@ class _SliderExampleState extends State<SliderExample> {
 class BigCard extends StatelessWidget {
   const BigCard({
     super.key,
-    required this.pair,
+    required this.sliderValue,
   });
 
-  final WordPair pair;
+  final double sliderValue;
 
   @override
   Widget build(BuildContext context) {
@@ -212,41 +187,36 @@ class BigCard extends StatelessWidget {
     return Card(
       color: theme.colorScheme.primary,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(10),
         child: Text(
-          pair.asLowerCase,
+          sliderValue.toString(),
           style: style,
-          semanticsLabel: "${pair.first} ${pair.second}",
+          semanticsLabel: sliderValue.toString(),
         ),
       ),
     );
   }
 }
 
-class FavoritesPage extends StatelessWidget {
+class ConfigPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
 
-    if (appState.favorites.isEmpty) {
-      return Center(
-        child: Text('No favorites yet'),
-      );
-    }
-
     return ListView(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Text('You have '
-              '${appState.favorites.length} favorites:'),
-        ),
-        for (var pair in appState.favorites)
-          ListTile(
-            leading: Icon(Icons.favorite),
-            title: Text(pair.asLowerCase),
-          )
-      ],
+        FutureBuilder(
+          future: appState.configuration, 
+          builder: (context, snapshot){
+            if(snapshot.hasData){
+              return Text(snapshot.data!.entries.toString());
+            }else if (snapshot.hasError){
+              return Text('${snapshot.error}');
+            }
+            return const CircularProgressIndicator();
+          }
+          ),
+      ]
     );
   }
 }
