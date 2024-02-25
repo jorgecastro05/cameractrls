@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request
+from flask import Flask, request, Response
 from flask import send_from_directory 
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+import sys
+import os 
 import cameractrls
+from flask_limiter import Limiter,util
+from flask_limiter.util import get_remote_address
 
 # Insta360 Link Options
 properties = {
@@ -17,8 +19,7 @@ properties = {
   "tilt_default": 0,
   "tilt_max": 360000,
   "tilt_min": -324000,
-  "step": 3600,
-  "levels" : 20
+  "step": 3600
 }
 
 
@@ -30,7 +31,6 @@ limiter = Limiter(
     storage_uri="memory://",
 )
 
-
 @app.route("/")
 def index():
     return send_from_directory()
@@ -40,36 +40,37 @@ def index():
 def print_properties():
     return properties
 
-@limiter.limit("1 per minute")
+
 @app.route("/pan",methods=['GET'])
+@limiter.limit("1 per second")
 def pan():
     args = request.args
     value = args.get('value')
-    pan_max = properties["pan_max"]
-    pan_min = properties["pan_min"]
     pan_option = properties['pan_option']
-    pan_default = properties["pan_default"]
-    levels = properties["levels"]
-    set_value = int((pan_max / levels) * float(value))
-    print(f'set value: {set_value}')
-    cameractrls.main(device=properties["device"], controls=f'{pan_option}={set_value}')
-    return f'set value of {set_value}'
-    return args
+    try:
+        cameractrls.main(device=properties["device"], controls=f'{pan_option}={value}')
+    except:
+        return Response(
+        "error setting parameter",
+        status=400,
+    )
+    return f'set value of {value}'
+
 
 @app.route("/tilt",methods=['GET'])
+@limiter.limit("1 per second")
 def tilt():
     args = request.args
     value = args.get('value')
-    tilt_max = properties["tilt_max"]
-    tilt_min = properties["tilt_min"]
     tilt_option = properties['tilt_option']
-    tilt_default = properties["tilt_default"]
-    levels = properties["levels"]
-    set_value = int((tilt_max / levels) * float(value))
-    print(f'set value: {set_value}')
-    cameractrls.main(device=properties["device"], controls=f'{tilt_option}={set_value}')
-    return f'set value of {set_value}'
-    return args
+    try:
+        cameractrls.main(device=properties["device"], controls=f'{tilt_option}={value}')
+    except:
+        return Response(
+        "error setting parameter",
+        status=400,
+    )
+    return f'set value of {value}'
 
 
 

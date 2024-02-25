@@ -1,0 +1,4 @@
+android-app
+pkg
+.venv
+__pycache__
