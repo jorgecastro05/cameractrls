@@ -24,12 +24,6 @@ properties = {
 
 
 app = Flask(__name__)
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://",
-)
 
 @app.route("/")
 def index():
@@ -42,7 +36,6 @@ def print_properties():
 
 
 @app.route("/pan",methods=['GET'])
-@limiter.limit("1 per second")
 def pan():
     args = request.args
     value = args.get('value')
@@ -58,7 +51,6 @@ def pan():
 
 
 @app.route("/tilt",methods=['GET'])
-@limiter.limit("1 per second")
 def tilt():
     args = request.args
     value = args.get('value')

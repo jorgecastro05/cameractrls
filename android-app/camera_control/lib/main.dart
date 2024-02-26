@@ -53,6 +53,10 @@ class MyAppState extends ChangeNotifier {
   double panMin = 0;
   double tiltMax = 0;
   double tiltMin = 0;
+  int milliseconds = 150;
+
+  bool _buttonPressed = false;
+  bool _loopActive = false;
 
   void setConfig(Future<Map<String, dynamic>> config) {
     configuration = config;
@@ -64,36 +68,70 @@ class MyAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void pan(double value) async {
-    panSliderValue = value;
-    String operation = '/pan?value=${panSliderValue.round()}';
-    print(Uri.parse(urlApi + operation));
-    try {
-    final response = await http.get(Uri.parse(urlApi + operation));
-    if (response.statusCode != 200) {
-      message = 'Failed to load set value';
-    } else {
-      message = 'Success change';
-    }
-    print(message);
-    notifyListeners();
-      } on Exception catch (_) {
-     print('Error: failed to fetch configuration URL');
-  }
+  void setButtonPressed(bool value) {
+    _buttonPressed = value;
   }
 
-  void tilt(double value) async {
-    tiltSliderValue = value;
-    String operation = '/tilt?value=${tiltSliderValue.round()}';
-    print(Uri.parse(urlApi + operation));
-    final response = await http.get(Uri.parse(urlApi + operation));
-    if (response.statusCode != 200) {
-      message = 'Failed to load set value';
-    } else {
-      message = 'Success change';
+  void pan(double value, String operation) async {
+    if (_loopActive) return;
+    _loopActive = true;
+    while (_buttonPressed) {
+      
+      switch (operation) {
+        case 'INCREASE':
+          value += 3600;
+        case 'DECREASE':
+          value -= 3600;
+        case 'RESET':
+          value = 0;
+      }
+      httpRequest('PAN', value);
+      panSliderValue = value;
+      await Future.delayed(Duration(milliseconds: milliseconds));
     }
-    print(message);
-    notifyListeners();
+    _loopActive = false;
+  }
+
+  void tilt(double value, String operation) async {
+    if (_loopActive) return;
+    _loopActive = true;
+    while (_buttonPressed) {
+      switch (operation) {
+        case 'INCREASE':
+          value += 3600;
+        case 'DECREASE':
+          value -= 3600;
+        case 'RESET':
+          value = 0;
+      }
+      httpRequest('TILT', value);
+      tiltSliderValue = value;
+      await Future.delayed(Duration(milliseconds: milliseconds));
+    }
+    _loopActive = false;
+  }
+
+  void httpRequest(String operation, double value) async {
+    String urlOp = '';
+    switch (operation) {
+      case 'TILT':
+        urlOp = '/tilt?value=${value.round()}';
+      case 'PAN':
+        urlOp = '/pan?value=${value.round()}';
+    }
+    try {
+      print('executing $urlOp');
+      final response = await http.get(Uri.parse(urlApi + urlOp));
+      if (response.statusCode != 200) {
+        message = 'Failed to load set value';
+      } else {
+        message = 'Success change';
+      }
+      print(message);
+      notifyListeners();
+    } on Exception catch (_) {
+      print('Error: failed to fetch configuration URL');
+    }
   }
 }
 
@@ -157,44 +195,87 @@ class ControlPage extends StatelessWidget {
     double sliderPanValue = appState.panSliderValue;
     double sliderTiltValue = appState.tiltSliderValue;
     return Center(
-      child: Column(
+        child: Column(children: [
+      SizedBox(height: 10),
+      Text('pan'),
+      BigCard(sliderValue: sliderPanValue),
+      SliderPan(),
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Listener(
+          onPointerDown: (details) {
+            appState.setButtonPressed(true);
+            appState.pan(sliderPanValue, 'DECREASE');
+          },
+          onPointerUp: (details) {
+            appState.setButtonPressed(false);
+          },
+          child: OutlinedButton(
+              onPressed: () => {}, child: Icon(Icons.skip_previous)),
+        ),
+        Listener(
+          onPointerDown: (details) {
+            appState.setButtonPressed(true);
+            appState.pan(sliderPanValue, 'RESET');
+          },
+          onPointerUp: (details) {
+            appState.setButtonPressed(false);
+          },
+          child: OutlinedButton(onPressed: () => {}, child: Icon(Icons.repeat)),
+        ),
+        Listener(
+          onPointerDown: (details) {
+            appState.setButtonPressed(true);
+            appState.pan(sliderPanValue, 'INCREASE');
+          },
+          onPointerUp: (details) {
+            appState.setButtonPressed(false);
+          },
+          child:
+              OutlinedButton(onPressed: () => {}, child: Icon(Icons.skip_next)),
+        )
+      ]),
+      Text('tilt'),
+      BigCard(sliderValue: sliderTiltValue),
+      SliderTilt(),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(height: 10),
-          Text('pan'),
-          BigCard(sliderValue: sliderPanValue),
-          SliderPan(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              OutlinedButton(
-                  onPressed: () => appState.pan(sliderPanValue + 3600),
-                  child: Icon(Icons.skip_previous)),
-              OutlinedButton(
-                  onPressed: () => appState.pan(0), child: Icon(Icons.repeat)),
-              OutlinedButton(
-                  onPressed: () => appState.pan(sliderPanValue - 3600),
-                  child: Icon(Icons.skip_next)),
-            ],
+          Listener(
+            onPointerDown: (details) {
+              appState.setButtonPressed(true);
+              appState.tilt(sliderTiltValue, 'DECREASE');
+            },
+            onPointerUp: (details) {
+              appState.setButtonPressed(false);
+            },
+            child: OutlinedButton(
+                onPressed: () => {}, child: Icon(Icons.skip_previous)),
           ),
-          Text('tilt'),
-          BigCard(sliderValue: sliderTiltValue),
-          SliderTilt(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              OutlinedButton(
-                  onPressed: () => appState.tilt(sliderTiltValue - 3600),
-                  child: Icon(Icons.skip_previous)),
-              OutlinedButton(
-                  onPressed: () => appState.tilt(0), child: Icon(Icons.repeat)),
-              OutlinedButton(
-                  onPressed: () => appState.tilt(sliderTiltValue + 3600),
-                  child: Icon(Icons.skip_next)),
-            ],
+          Listener(
+            onPointerDown: (details) {
+              appState.setButtonPressed(true);
+              appState.tilt(sliderTiltValue, 'RESET');
+            },
+            onPointerUp: (details) {
+              appState.setButtonPressed(false);
+            },
+            child:
+                OutlinedButton(onPressed: () => {}, child: Icon(Icons.repeat)),
           ),
+          Listener(
+            onPointerDown: (details) {
+              appState.setButtonPressed(true);
+              appState.tilt(sliderTiltValue, 'INCREASE');
+            },
+            onPointerUp: (details) {
+              appState.setButtonPressed(false);
+            },
+            child: OutlinedButton(
+                onPressed: () => {}, child: Icon(Icons.skip_next)),
+          )
         ],
       ),
-    );
+    ]));
   }
 }
 
@@ -217,11 +298,7 @@ class _SliderPanState extends State<SliderPan> {
       max: 522000,
       divisions: 522000 ~/ 3600,
       label: currentSliderValue.round().toString(),
-      onChanged: (double value) {
-        appState.pan(value);
-        // ScaffoldMessenger.of(context)
-        //     .showSnackBar(SnackBar(content: Text(message)));
-      },
+      onChanged: (double value) {},
     );
   }
 }
@@ -245,11 +322,7 @@ class _SliderTiltState extends State<SliderTilt> {
       max: 360000,
       divisions: 360000 ~/ 3600,
       label: currentSliderValue.round().toString(),
-      onChanged: (double value) {
-        appState.tilt(value);
-        // ScaffoldMessenger.of(context)
-        //     .showSnackBar(SnackBar(content: Text(message)));
-      },
+      onChanged: (double value) {},
     );
   }
 }
