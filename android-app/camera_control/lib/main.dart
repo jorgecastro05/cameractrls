@@ -46,13 +46,21 @@ class MyApp extends StatelessWidget {
 class MyAppState extends ChangeNotifier {
   double panSliderValue = 0;
   double tiltSliderValue = 0;
+  double zoomSliderValue = 100;
   String urlApi = 'http://192.168.10.106:5000';
   late Future<Map<String, dynamic>> configuration;
   String message = '';
-  double panMax = 0;
-  double panMin = 0;
-  double tiltMax = 0;
-  double tiltMin = 0;
+  double panMax = 522000;
+  double panMin = -522000;
+  double panDefault = 0;
+  double tiltDefault = 0;
+  double tiltMax = 360000;
+  double tiltMin = -324000;
+  double panStep = 3600;
+  double tiltStep = 3600;
+  double zoomStep = 10;
+  double zoomMin = 100;
+  double zoomMax = 400;
   int milliseconds = 150;
 
   bool _buttonPressed = false;
@@ -76,14 +84,13 @@ class MyAppState extends ChangeNotifier {
     if (_loopActive) return;
     _loopActive = true;
     while (_buttonPressed) {
-      
       switch (operation) {
         case 'INCREASE':
-          value += 3600;
+          value -= panStep;
         case 'DECREASE':
-          value -= 3600;
+          value += panStep;
         case 'RESET':
-          value = 0;
+          value = panDefault;
       }
       httpRequest('PAN', value);
       panSliderValue = value;
@@ -98,14 +105,33 @@ class MyAppState extends ChangeNotifier {
     while (_buttonPressed) {
       switch (operation) {
         case 'INCREASE':
-          value += 3600;
+          value += tiltStep;
         case 'DECREASE':
-          value -= 3600;
+          value -= tiltStep;
         case 'RESET':
-          value = 0;
+          value = tiltDefault;
       }
       httpRequest('TILT', value);
       tiltSliderValue = value;
+      await Future.delayed(Duration(milliseconds: milliseconds));
+    }
+    _loopActive = false;
+  }
+
+  void zoom(double value, String operation) async {
+    if (_loopActive) return;
+    _loopActive = true;
+    while (_buttonPressed) {
+      switch (operation) {
+        case 'INCREASE':
+          value += zoomStep;
+        case 'DECREASE':
+          value -= zoomStep;
+        case 'RESET':
+          value = zoomMin;
+      }
+      httpRequest('ZOOM', value);
+      zoomSliderValue = value;
       await Future.delayed(Duration(milliseconds: milliseconds));
     }
     _loopActive = false;
@@ -118,6 +144,8 @@ class MyAppState extends ChangeNotifier {
         urlOp = '/tilt?value=${value.round()}';
       case 'PAN':
         urlOp = '/pan?value=${value.round()}';
+      case 'ZOOM':
+        urlOp = '/zoom?value=${value.round()}';
     }
     try {
       print('executing $urlOp');
@@ -195,7 +223,9 @@ class ControlPage extends StatelessWidget {
     double sliderPanValue = appState.panSliderValue;
     double sliderTiltValue = appState.tiltSliderValue;
     return Center(
-        child: Column(children: [
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
       SizedBox(height: 10),
       Text('pan'),
       BigCard(sliderValue: sliderPanValue),
@@ -294,9 +324,9 @@ class _SliderPanState extends State<SliderPan> {
     String message = appState.message;
     return Slider(
       value: currentSliderValue,
-      min: -522000,
-      max: 522000,
-      divisions: 522000 ~/ 3600,
+      min: appState.panMin,
+      max: appState.panMax,
+      divisions: appState.panMax ~/ appState.panStep,
       label: currentSliderValue.round().toString(),
       onChanged: (double value) {},
     );
@@ -318,9 +348,9 @@ class _SliderTiltState extends State<SliderTilt> {
     String message = appState.message;
     return Slider(
       value: currentSliderValue,
-      min: -324000,
-      max: 360000,
-      divisions: 360000 ~/ 3600,
+      min: appState.tiltMin,
+      max: appState.tiltMax,
+      divisions: appState.tiltMax ~/ appState.tiltStep,
       label: currentSliderValue.round().toString(),
       onChanged: (double value) {},
     );

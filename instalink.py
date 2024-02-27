@@ -19,7 +19,11 @@ properties = {
   "tilt_default": 0,
   "tilt_max": 360000,
   "tilt_min": -324000,
-  "step": 3600
+  "step": 3600,
+  "zoom_option": "zoom_absolute",
+  "zoom_min": 100,
+  "zoom_max": 400,
+  "zoom_default": 100
 }
 
 
@@ -64,5 +68,17 @@ def tilt():
     )
     return f'set value of {value}'
 
-
+@app.route("/zoom",methods=['GET'])
+def tilt():
+    args = request.args
+    value = args.get('value')
+    zoom_option = properties['zoom_option']
+    try:
+        cameractrls.main(device=properties["device"], controls=f'{zoom_option}={value}')
+    except:
+        return Response(
+        "error setting parameter",
+        status=400,
+    )
+    return f'set value of {value}'
 
