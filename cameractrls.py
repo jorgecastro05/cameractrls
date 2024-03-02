@@ -2500,6 +2500,34 @@ class CameraCtrls:
                     if c.inactive:
                         print(' | inactive', end = '')
                     print()
+    
+    def print_ctrls_to_string(self):
+        output = ''
+        for page in self.get_ctrl_pages():
+            for cat in page.categories:
+                output += (f'{page.title} / {cat.title}')
+                for c in cat.ctrls:
+                    output += (f' {c.text_id}')
+                    if c.type == 'menu':
+                        output += (f' = {c.value}\t( ')
+                        if c.default:
+                            output += (f'default: {c.default} ')
+                        output += ('values:')
+                        output += (', '.join([m.text_id for m in c.menu]))
+                    elif c.type == 'button':
+                        output += ('\t\t( buttons: ')
+                        output += (', '.join([m.text_id for m in c.menu]))
+                    elif c.type == 'info':
+                        output += (f' = {c.value}')
+                    elif c.type in ['integer', 'boolean']:
+                        output += (f' = {c.value}\t( default: {c.default} min: {c.min} max: {c.max}')
+                        if c.step and c.step != 1:
+                            output += (f' step: {c.step}')
+                        output += (' )')
+                    if c.inactive:
+                        output += (' | inactive')
+                    output += ("\n")
+        return output
 
     def setup_ctrls(self, params, errs):
         logging.info(f'CameraCtrls.setup_ctrls: {params}')
@@ -2656,7 +2684,7 @@ def usage():
     print(f'example:')
     print(f'  {sys.argv[0]} -c brightness=128,kiyo_pro_hdr=on,kiyo_pro_fov=wide')
 
-def main(device, controls):
+def main(device, controls, list_controls = False ):
     # try:
     #     arguments, values = getopt.getopt(sys.argv[1:], 'hd:lLc:', ['help', 'list', 'list-devices'])
     # except getopt.error as err:
@@ -2668,7 +2696,7 @@ def main(device, controls):
     #     usage()
     #     sys.exit(0)
 
-    list_controls = False
+    #list_controls = False
     list_devices = False
     #device = '/dev/video0'
     #controls = ''
@@ -2702,7 +2730,7 @@ def main(device, controls):
     camera_ctrls = CameraCtrls(device, fd)
 
     if list_controls:
-        camera_ctrls.print_ctrls()
+        return camera_ctrls.print_ctrls_to_string()
 
     if controls != '':
         ctrlsmap = {}

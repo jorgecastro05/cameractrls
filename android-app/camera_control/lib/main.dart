@@ -48,7 +48,6 @@ class MyAppState extends ChangeNotifier {
   double tiltSliderValue = 0;
   double zoomSliderValue = 100;
   String urlApi = 'http://192.168.10.106:5000';
-  late Future<Map<String, dynamic>> configuration;
   String message = '';
   double panMax = 522000;
   double panMin = -522000;
@@ -66,9 +65,12 @@ class MyAppState extends ChangeNotifier {
   bool _buttonPressed = false;
   bool _loopActive = false;
 
-  void setConfig(Future<Map<String, dynamic>> config) {
-    configuration = config;
-    config.then((value) => {});
+  void loadConfig() async {
+    Map<String, dynamic> configuration = await fetchConfig(urlApi);
+    panSliderValue = double.parse(configuration['current_pan']);
+    tiltSliderValue = double.parse(configuration['current_tilt']);
+    zoomSliderValue = double.parse(configuration['current_zoom']);
+    notifyListeners();
   }
 
   void setUrl(String url) {
@@ -92,8 +94,10 @@ class MyAppState extends ChangeNotifier {
         case 'RESET':
           value = panDefault;
       }
-      httpRequest('PAN', value);
-      panSliderValue = value;
+      if (value <= panMax && value >= panMin) {
+        httpRequest('PAN', value);
+        panSliderValue = value;
+      }
       await Future.delayed(Duration(milliseconds: milliseconds));
     }
     _loopActive = false;
@@ -111,8 +115,10 @@ class MyAppState extends ChangeNotifier {
         case 'RESET':
           value = tiltDefault;
       }
-      httpRequest('TILT', value);
-      tiltSliderValue = value;
+      if (value <= tiltMax && value >= tiltMin) {
+        httpRequest('TILT', value);
+        tiltSliderValue = value;
+      }
       await Future.delayed(Duration(milliseconds: milliseconds));
     }
     _loopActive = false;
@@ -130,8 +136,10 @@ class MyAppState extends ChangeNotifier {
         case 'RESET':
           value = zoomMin;
       }
-      httpRequest('ZOOM', value);
-      zoomSliderValue = value;
+      if (value <= zoomMax && value >= zoomMin) {
+        httpRequest('ZOOM', value);
+        zoomSliderValue = value;
+      }
       await Future.delayed(Duration(milliseconds: milliseconds));
     }
     _loopActive = false;
@@ -222,13 +230,14 @@ class ControlPage extends StatelessWidget {
     var appState = context.watch<MyAppState>();
     double sliderPanValue = appState.panSliderValue;
     double sliderTiltValue = appState.tiltSliderValue;
+    double sliderZoomValue = appState.zoomSliderValue;
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-      SizedBox(height: 10),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      OutlinedButton(
+          onPressed: () => {appState.loadConfig()},
+          child: const Text("Load current values from cam")),
       Text('pan'),
-      BigCard(sliderValue: sliderPanValue),
+      BigCard(sliderValue: sliderPanValue*-1),
       SliderPan(),
       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         Listener(
@@ -305,6 +314,47 @@ class ControlPage extends StatelessWidget {
           )
         ],
       ),
+      Text('Zoom'),
+      BigCard(sliderValue: sliderZoomValue),
+      SliderZoom(),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Listener(
+            onPointerDown: (details) {
+              appState.setButtonPressed(true);
+              appState.zoom(sliderZoomValue, 'DECREASE');
+            },
+            onPointerUp: (details) {
+              appState.setButtonPressed(false);
+            },
+            child: OutlinedButton(
+                onPressed: () => {}, child: Icon(Icons.skip_previous)),
+          ),
+          Listener(
+            onPointerDown: (details) {
+              appState.setButtonPressed(true);
+              appState.zoom(sliderZoomValue, 'RESET');
+            },
+            onPointerUp: (details) {
+              appState.setButtonPressed(false);
+            },
+            child:
+                OutlinedButton(onPressed: () => {}, child: Icon(Icons.repeat)),
+          ),
+          Listener(
+            onPointerDown: (details) {
+              appState.setButtonPressed(true);
+              appState.zoom(sliderZoomValue, 'INCREASE');
+            },
+            onPointerUp: (details) {
+              appState.setButtonPressed(false);
+            },
+            child: OutlinedButton(
+                onPressed: () => {}, child: Icon(Icons.skip_next)),
+          )
+        ],
+      ),
     ]));
   }
 }
@@ -323,7 +373,7 @@ class _SliderPanState extends State<SliderPan> {
     var currentSliderValue = appState.panSliderValue;
     String message = appState.message;
     return Slider(
-      value: currentSliderValue,
+      value: currentSliderValue*-1,
       min: appState.panMin,
       max: appState.panMax,
       divisions: appState.panMax ~/ appState.panStep,
@@ -351,6 +401,30 @@ class _SliderTiltState extends State<SliderTilt> {
       min: appState.tiltMin,
       max: appState.tiltMax,
       divisions: appState.tiltMax ~/ appState.tiltStep,
+      label: currentSliderValue.round().toString(),
+      onChanged: (double value) {},
+    );
+  }
+}
+
+class SliderZoom extends StatefulWidget {
+  const SliderZoom({super.key});
+
+  @override
+  State<SliderZoom> createState() => _SliderZoomState();
+}
+
+class _SliderZoomState extends State<SliderZoom> {
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+    var currentSliderValue = appState.zoomSliderValue;
+    String message = appState.message;
+    return Slider(
+      value: currentSliderValue,
+      min: appState.zoomMin,
+      max: appState.zoomMax,
+      divisions: appState.zoomMax ~/ appState.zoomStep,
       label: currentSliderValue.round().toString(),
       onChanged: (double value) {},
     );

@@ -5,8 +5,7 @@ from flask import send_from_directory
 import sys
 import os 
 import cameractrls
-from flask_limiter import Limiter,util
-from flask_limiter.util import get_remote_address
+import re
 
 # Insta360 Link Options
 properties = {
@@ -36,6 +35,10 @@ def index():
 
 @app.route("/props")
 def print_properties():
+    result = cameractrls.main(device=properties["device"], controls='', list_controls = True)
+    properties['current_zoom'] = re.search(r"zoom_absolute = (\d+)", result).group(1)
+    properties['current_tilt'] = re.search(r"tilt_absolute = (-{0,1}\d+)", result).group(1)
+    properties['current_pan'] = re.search(r"pan_absolute = (-{0,1}\d+)", result).group(1)
     return properties
 
 
@@ -69,7 +72,7 @@ def tilt():
     return f'set value of {value}'
 
 @app.route("/zoom",methods=['GET'])
-def tilt():
+def zoom():
     args = request.args
     value = args.get('value')
     zoom_option = properties['zoom_option']
