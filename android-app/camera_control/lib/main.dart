@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future<Map<String, dynamic>> fetchConfig(String urlApi) async {
   try {
@@ -47,7 +48,7 @@ class MyAppState extends ChangeNotifier {
   double panSliderValue = 0;
   double tiltSliderValue = 0;
   double zoomSliderValue = 100;
-  String urlApi = 'http://192.168.10.106:5000';
+  String urlApi = '';
   String message = '';
   double panMax = 522000;
   double panMin = -522000;
@@ -66,6 +67,7 @@ class MyAppState extends ChangeNotifier {
   bool _loopActive = false;
 
   void loadConfig() async {
+    getUrl();
     Map<String, dynamic> configuration = await fetchConfig(urlApi);
     panSliderValue = double.parse(configuration['current_pan']);
     tiltSliderValue = double.parse(configuration['current_tilt']);
@@ -73,8 +75,17 @@ class MyAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setUrl(String url) {
+    Future<String> getUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    String  url = prefs.getString("url") ?? 'http://192.168.10.106:5000';
     urlApi = url;
+    return urlApi;
+  }
+
+  void setUrl(String url) async {
+    final prefs = await SharedPreferences.getInstance();
+    urlApi = url;
+    prefs.setString("url", urlApi);
     notifyListeners();
   }
 
@@ -463,22 +474,45 @@ class ConfigPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
-    String urlApi = appState.urlApi;
-    return Center(
+    return FutureBuilder(future: appState.getUrl(),
+     initialData: "loading url",
+     builder: (BuildContext context, AsyncSnapshot<String> text){
+     return Center(
       child: Column(
         children: [
-          Text('Url API'),
+          Text("Url Api"),
           TextFormField(
-            decoration: InputDecoration(
+          decoration: InputDecoration(
               border: OutlineInputBorder(),
             ),
-            onChanged: (value) {
+             onChanged: (value) {
               appState.setUrl(value);
             },
-            initialValue: urlApi,
-          ),
+            initialValue: appState.urlApi
+          )
         ],
       ),
-    );
+     );
+      });
   }
+   
+    // var appState = context.watch<MyAppState>();
+    // String urlApi = appState.getUrl();
+    // return Center(
+    //   child: Column(
+    //     children: [
+    //       Text('Url API'),
+    //       TextFormField(
+    //         decoration: InputDecoration(
+    //           border: OutlineInputBorder(),
+    //         ),
+    //         onChanged: (value) {
+    //           appState.setUrl(value);
+    //         },
+    //         initialValue: urlApi;
+    //       ),
+    //     ],
+    //   ),
+    // );
+  //}
 }
