@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:ffi';
 
+import 'package:camera_control/sliders.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
@@ -63,6 +65,31 @@ class MyAppState extends ChangeNotifier {
   double zoomMax = 400;
   int milliseconds = 150;
 
+  // new properties
+  double brightnessMax = 100;
+  double brightnessMin = 0;
+  double brightnessDefault = 50;
+  double brightnessStep = 1;
+  double brightnessSliderValue = 0;
+
+  double contrastMax = 100;
+  double contrastMin = 0;
+  double contrastDefault = 50;
+  double contrastStep = 1;
+  double contrastSliderValue = 0;
+
+  double saturationMax = 100;
+  double saturationMin = 0;
+  double saturationDefault = 50;
+  double saturationStep = 1;
+  double saturationSliderValue = 0;
+
+  double sharpnessMax = 100;
+  double sharpnessMin = 0;
+  double sharpnessDefault = 50;
+  double sharpnessStep = 1;
+  double sharpnessSliderValue = 0;
+
   bool _buttonPressed = false;
   bool _loopActive = false;
 
@@ -72,6 +99,12 @@ class MyAppState extends ChangeNotifier {
     panSliderValue = double.parse(configuration['current_pan']);
     tiltSliderValue = double.parse(configuration['current_tilt']);
     zoomSliderValue = double.parse(configuration['current_zoom']);
+
+    brightnessSliderValue = double.parse(configuration['current_brightness']);
+    contrastSliderValue = double.parse(configuration['current_contrast']);
+    saturationSliderValue = double.parse(configuration['current_saturation']);
+    sharpnessSliderValue = double.parse(configuration['current_sharpness']);
+
     notifyListeners();
   }
 
@@ -107,7 +140,7 @@ class MyAppState extends ChangeNotifier {
           value = panDefault;
       }
       if (value <= panMax && value >= panMin) {
-        httpRequest('PAN', value);
+        httpRequest('pan', value);
         panSliderValue = value;
       }
       await Future.delayed(Duration(milliseconds: milliseconds));
@@ -128,7 +161,7 @@ class MyAppState extends ChangeNotifier {
           value = tiltDefault;
       }
       if (value <= tiltMax && value >= tiltMin) {
-        httpRequest('TILT', value);
+        httpRequest('tilt', value);
         tiltSliderValue = value;
       }
       await Future.delayed(Duration(milliseconds: milliseconds));
@@ -149,7 +182,7 @@ class MyAppState extends ChangeNotifier {
           value = zoomMin;
       }
       if (value <= zoomMax && value >= zoomMin) {
-        httpRequest('ZOOM', value);
+        httpRequest('zoom', value);
         zoomSliderValue = value;
       }
       await Future.delayed(Duration(milliseconds: milliseconds));
@@ -157,16 +190,92 @@ class MyAppState extends ChangeNotifier {
     _loopActive = false;
   }
 
-  void httpRequest(String operation, double value) async {
-    String urlOp = '';
-    switch (operation) {
-      case 'TILT':
-        urlOp = '/tilt?value=${value.round()}';
-      case 'PAN':
-        urlOp = '/pan?value=${value.round()}';
-      case 'ZOOM':
-        urlOp = '/zoom?value=${value.round()}';
+  void brightness(double value, String operation) async {
+    if (_loopActive) return;
+    _loopActive = true;
+    while (_buttonPressed) {
+      switch (operation) {
+        case 'INCREASE':
+          value += brightnessStep;
+        case 'DECREASE':
+          value -= brightnessStep;
+        case 'RESET':
+          value = brightnessDefault;
+      }
+      if (value <= brightnessMax && value >= brightnessMin) {
+        httpRequest('brightness', value);
+        brightnessSliderValue = value;
+      }
+      await Future.delayed(Duration(milliseconds: milliseconds));
     }
+    _loopActive = false;
+  }
+
+  void contrast(double value, String operation) async {
+    if (_loopActive) return;
+    _loopActive = true;
+    while (_buttonPressed) {
+      switch (operation) {
+        case 'INCREASE':
+          value += contrastStep;
+        case 'DECREASE':
+          value -= contrastStep;
+        case 'RESET':
+          value = contrastDefault;
+      }
+      if (value <= contrastMax && value >= contrastMin) {
+        httpRequest('contrast', value);
+        contrastSliderValue = value;
+      }
+      await Future.delayed(Duration(milliseconds: milliseconds));
+    }
+    _loopActive = false;
+  }
+
+  void saturation(double value, String operation) async {
+    if (_loopActive) return;
+    _loopActive = true;
+    while (_buttonPressed) {
+      switch (operation) {
+        case 'INCREASE':
+          value += saturationStep;
+        case 'DECREASE':
+          value -= saturationStep;
+        case 'RESET':
+          value = sharpnessDefault;
+      }
+      if (value <= saturationMax && value >= saturationMin) {
+        httpRequest('saturation', value);
+        saturationSliderValue = value;
+      }
+      await Future.delayed(Duration(milliseconds: milliseconds));
+    }
+    _loopActive = false;
+  }
+
+  void sharpness(double value, String operation) async {
+    if (_loopActive) return;
+    _loopActive = true;
+    while (_buttonPressed) {
+      switch (operation) {
+        case 'INCREASE':
+          value += sharpnessStep;
+        case 'DECREASE':
+          value -= sharpnessStep;
+        case 'RESET':
+          value = sharpnessDefault;
+      }
+      if (value <= sharpnessMax && value >= sharpnessMin) {
+        httpRequest('sharpness', value);
+        sharpnessSliderValue = value;
+      }
+      await Future.delayed(Duration(milliseconds: milliseconds));
+    }
+    _loopActive = false;
+  }
+
+  void httpRequest(String operation, double value) async {
+    String urlOp = '/$operation?value=${value.round()}';
     try {
       debugPrint('executing $urlOp');
       final response = await http.get(Uri.parse(urlApi + urlOp));
@@ -199,6 +308,8 @@ class _MyHomePageState extends State<MyHomePage> {
         page = ControlPage();
       case 1:
         page = ConfigPage();
+      case 2:
+        page = ControlPropsPage();
       default:
         throw UnimplementedError('no widget for $selectedIndex');
     }
@@ -214,7 +325,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 NavigationRailDestination(
                     icon: Icon(Icons.home), label: Text('Home')),
                 NavigationRailDestination(
-                    icon: Icon(Icons.settings), label: Text('Settings'))
+                    icon: Icon(Icons.settings), label: Text('Settings')),
+                NavigationRailDestination(
+                    icon: Icon(Icons.circle), label: Text('Settings 2'))
               ],
               selectedIndex: selectedIndex,
               onDestinationSelected: (value) {
@@ -243,6 +356,7 @@ class ControlPage extends StatelessWidget {
     double sliderPanValue = appState.panSliderValue;
     double sliderTiltValue = appState.tiltSliderValue;
     double sliderZoomValue = appState.zoomSliderValue;
+
     return Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       OutlinedButton(
@@ -252,9 +366,24 @@ class ControlPage extends StatelessWidget {
       BigCard(sliderValue: sliderPanValue * -1),
       SliderPan(),
       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        ListenerCamera(appState: appState,sliderValue: sliderPanValue,operation: 'DECREASE',icon: Icons.skip_previous, option: 'pan'),
-        ListenerCamera(appState: appState, sliderValue: sliderPanValue, operation: 'RESET', icon: Icons.repeat, option: 'pan'),
-        ListenerCamera(appState: appState, sliderValue: sliderPanValue,  operation: 'INCREASE', icon: Icons.skip_next, option: 'pan')
+        ListenerCamera(
+            appState: appState,
+            sliderValue: sliderPanValue,
+            operation: 'DECREASE',
+            icon: Icons.skip_previous,
+            option: 'pan'),
+        ListenerCamera(
+            appState: appState,
+            sliderValue: sliderPanValue,
+            operation: 'RESET',
+            icon: Icons.repeat,
+            option: 'pan'),
+        ListenerCamera(
+            appState: appState,
+            sliderValue: sliderPanValue,
+            operation: 'INCREASE',
+            icon: Icons.skip_next,
+            option: 'pan')
       ]),
       Text('tilt'),
       BigCard(sliderValue: sliderTiltValue),
@@ -262,9 +391,24 @@ class ControlPage extends StatelessWidget {
       Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-        ListenerCamera(appState: appState,sliderValue: sliderTiltValue,operation: 'DECREASE',icon: Icons.skip_previous, option: 'tilt'),
-        ListenerCamera(appState: appState, sliderValue: sliderTiltValue, operation: 'RESET', icon: Icons.repeat, option: 'tilt'),
-        ListenerCamera(appState: appState, sliderValue: sliderTiltValue,  operation: 'INCREASE', icon: Icons.skip_next, option: 'tilt')
+          ListenerCamera(
+              appState: appState,
+              sliderValue: sliderTiltValue,
+              operation: 'DECREASE',
+              icon: Icons.skip_previous,
+              option: 'tilt'),
+          ListenerCamera(
+              appState: appState,
+              sliderValue: sliderTiltValue,
+              operation: 'RESET',
+              icon: Icons.repeat,
+              option: 'tilt'),
+          ListenerCamera(
+              appState: appState,
+              sliderValue: sliderTiltValue,
+              operation: 'INCREASE',
+              icon: Icons.skip_next,
+              option: 'tilt')
         ],
       ),
       Text('Zoom'),
@@ -273,14 +417,150 @@ class ControlPage extends StatelessWidget {
       Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-        ListenerCamera(appState: appState, sliderValue: sliderZoomValue,operation: 'DECREASE',icon: Icons.skip_previous, option: 'zoom'),
-        ListenerCamera(appState: appState, sliderValue: sliderZoomValue, operation: 'RESET', icon: Icons.repeat, option: 'zoom'),
-        ListenerCamera(appState: appState, sliderValue: sliderZoomValue,  operation: 'INCREASE', icon: Icons.skip_next, option: 'zoom')
+          ListenerCamera(
+              appState: appState,
+              sliderValue: sliderZoomValue,
+              operation: 'DECREASE',
+              icon: Icons.skip_previous,
+              option: 'zoom'),
+          ListenerCamera(
+              appState: appState,
+              sliderValue: sliderZoomValue,
+              operation: 'RESET',
+              icon: Icons.repeat,
+              option: 'zoom'),
+          ListenerCamera(
+              appState: appState,
+              sliderValue: sliderZoomValue,
+              operation: 'INCREASE',
+              icon: Icons.skip_next,
+              option: 'zoom')
         ],
       ),
     ]));
   }
 }
+
+class ControlPropsPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+
+    double brightnessSliderValue = appState.brightnessSliderValue;
+    double contrastSliderValue = appState.contrastSliderValue;
+    double saturationSliderValue = appState.saturationSliderValue;
+    double sharpnessSliderValue = appState.sharpnessSliderValue;
+
+    return Center(
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      OutlinedButton(
+          onPressed: () => {appState.loadConfig()},
+          child: const Text("Load current values from cam")),
+      Text('brightness'),
+      BigCard(sliderValue: brightnessSliderValue),
+      SliderBrightness(),
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        ListenerCamera(
+            appState: appState,
+            sliderValue: brightnessSliderValue,
+            operation: 'DECREASE',
+            icon: Icons.skip_previous,
+            option: 'brightness'),
+        ListenerCamera(
+            appState: appState,
+            sliderValue: brightnessSliderValue,
+            operation: 'RESET',
+            icon: Icons.repeat,
+            option: 'brightness'),
+        ListenerCamera(
+            appState: appState,
+            sliderValue: brightnessSliderValue,
+            operation: 'INCREASE',
+            icon: Icons.skip_next,
+            option: 'brightness')
+      ]),
+      Text('contrast'),
+      BigCard(sliderValue: contrastSliderValue),
+      SliderContrast(),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ListenerCamera(
+              appState: appState,
+              sliderValue: contrastSliderValue,
+              operation: 'DECREASE',
+              icon: Icons.skip_previous,
+              option: 'contrast'),
+          ListenerCamera(
+              appState: appState,
+              sliderValue: contrastSliderValue,
+              operation: 'RESET',
+              icon: Icons.repeat,
+              option: 'contrast'),
+          ListenerCamera(
+              appState: appState,
+              sliderValue: contrastSliderValue,
+              operation: 'INCREASE',
+              icon: Icons.skip_next,
+              option: 'contrast')
+        ],
+      ),
+      Text('saturation'),
+      BigCard(sliderValue: saturationSliderValue),
+      SliderSaturation(),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ListenerCamera(
+              appState: appState,
+              sliderValue: saturationSliderValue,
+              operation: 'DECREASE',
+              icon: Icons.skip_previous,
+              option: 'saturation'),
+          ListenerCamera(
+              appState: appState,
+              sliderValue: saturationSliderValue,
+              operation: 'RESET',
+              icon: Icons.repeat,
+              option: 'saturation'),
+          ListenerCamera(
+              appState: appState,
+              sliderValue: saturationSliderValue,
+              operation: 'INCREASE',
+              icon: Icons.skip_next,
+              option: 'saturation')
+        ],
+      ),
+      Text('sharpness'),
+      BigCard(sliderValue: sharpnessSliderValue),
+      SliderSharpness(),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ListenerCamera(
+              appState: appState,
+              sliderValue: sharpnessSliderValue,
+              operation: 'DECREASE',
+              icon: Icons.skip_previous,
+              option: 'sharpness'),
+          ListenerCamera(
+              appState: appState,
+              sliderValue: sharpnessSliderValue,
+              operation: 'RESET',
+              icon: Icons.repeat,
+              option: 'sharpness'),
+          ListenerCamera(
+              appState: appState,
+              sliderValue: sharpnessSliderValue,
+              operation: 'INCREASE',
+              icon: Icons.skip_next,
+              option: 'sharpness')
+        ],
+      ),
+    ]));
+  }
+}
+
 
 class ListenerCamera extends StatelessWidget {
   const ListenerCamera(
@@ -289,8 +569,7 @@ class ListenerCamera extends StatelessWidget {
       required this.sliderValue,
       required this.operation,
       required this.icon,
-      required this.option
-      });
+      required this.option});
 
   final MyAppState appState;
   final double sliderValue;
@@ -303,13 +582,21 @@ class ListenerCamera extends StatelessWidget {
     return Listener(
       onPointerDown: (details) {
         appState.setButtonPressed(true);
-        switch (option){
+        switch (option) {
           case 'pan':
             appState.pan(sliderValue, operation);
           case 'tilt':
             appState.tilt(sliderValue, operation);
           case 'zoom':
             appState.zoom(sliderValue, operation);
+          case 'brightness':
+            appState.brightness(sliderValue, operation);
+          case 'contrast':
+            appState.contrast(sliderValue, operation);
+          case 'saturation':
+            appState.saturation(sliderValue, operation);
+          case 'sharpness':
+            appState.sharpness(sliderValue, operation);
         }
       },
       onPointerUp: (details) {
@@ -320,77 +607,6 @@ class ListenerCamera extends StatelessWidget {
   }
 }
 
-class SliderPan extends StatefulWidget {
-  const SliderPan({super.key});
-
-  @override
-  State<SliderPan> createState() => _SliderPanState();
-}
-
-class _SliderPanState extends State<SliderPan> {
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var currentSliderValue = appState.panSliderValue;
-    String message = appState.message;
-    return Slider(
-      value: currentSliderValue * -1,
-      min: appState.panMin,
-      max: appState.panMax,
-      divisions: appState.panMax ~/ appState.panStep,
-      label: currentSliderValue.round().toString(),
-      onChanged: (double value) {},
-    );
-  }
-}
-
-class SliderTilt extends StatefulWidget {
-  const SliderTilt({super.key});
-
-  @override
-  State<SliderTilt> createState() => _SliderTiltState();
-}
-
-class _SliderTiltState extends State<SliderTilt> {
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var currentSliderValue = appState.tiltSliderValue;
-    String message = appState.message;
-    return Slider(
-      value: currentSliderValue,
-      min: appState.tiltMin,
-      max: appState.tiltMax,
-      divisions: appState.tiltMax ~/ appState.tiltStep,
-      label: currentSliderValue.round().toString(),
-      onChanged: (double value) {},
-    );
-  }
-}
-
-class SliderZoom extends StatefulWidget {
-  const SliderZoom({super.key});
-
-  @override
-  State<SliderZoom> createState() => _SliderZoomState();
-}
-
-class _SliderZoomState extends State<SliderZoom> {
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var currentSliderValue = appState.zoomSliderValue;
-    String message = appState.message;
-    return Slider(
-      value: currentSliderValue,
-      min: appState.zoomMin,
-      max: appState.zoomMax,
-      divisions: appState.zoomMax ~/ appState.zoomStep,
-      label: currentSliderValue.round().toString(),
-      onChanged: (double value) {},
-    );
-  }
-}
 
 class BigCard extends StatelessWidget {
   const BigCard({

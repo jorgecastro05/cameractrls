@@ -2685,12 +2685,6 @@ def usage():
     print(f'  {sys.argv[0]} -c brightness=128,kiyo_pro_hdr=on,kiyo_pro_fov=wide')
 
 def main(device, controls, list_controls = False ):
-    list_devices = False
-    
-    if list_devices:
-        for d in get_devices(v4ldirs):
-            print(d)
-        sys.exit(0)
 
     try:
         fd = os.open(device, os.O_RDWR, 0)

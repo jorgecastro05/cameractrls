@@ -43,6 +43,10 @@ def print_properties():
     properties['current_zoom'] = re.search(r"zoom_absolute = (\d+)", result).group(1)
     properties['current_tilt'] = re.search(r"tilt_absolute = (-{0,1}\d+)", result).group(1)
     properties['current_pan'] = re.search(r"pan_absolute = (-{0,1}\d+)", result).group(1)
+    properties['current_brightness'] = re.search(r"brightness = (\d+)", result).group(1)
+    properties['current_contrast'] = re.search(r"contrast = (\d+)", result).group(1)
+    properties['current_saturation'] = re.search(r"saturation = (\d+)", result).group(1)
+    properties['current_sharpness'] = re.search(r"sharpness = (\d+)", result).group(1)
     return properties
 
 
