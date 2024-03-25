@@ -9,7 +9,7 @@ import re
 
 # Insta360 Link Options
 properties = {
-  "device": "/dev/video2",
+  "device": "/dev/v4l/by-id/usb-Insta360_Insta360_Link-video-index0",
   "pan_option": "pan_absolute",
   "pan_default": 0,
   "pan_max": 522000,
@@ -22,7 +22,11 @@ properties = {
   "zoom_option": "zoom_absolute",
   "zoom_min": 100,
   "zoom_max": 400,
-  "zoom_default": 100
+  "zoom_default": 100,
+  "brightness": 50,
+  "contrast": 50,
+  "saturation": 50,
+  "sharpness": 50
 }
 
 
@@ -85,3 +89,55 @@ def zoom():
     )
     return f'set value of {value}'
 
+@app.route("/brightness",methods=['GET'])
+def brightness():
+    args = request.args
+    value = args.get('value')
+    try:
+        cameractrls.main(device=properties["device"], controls=f'brightness={value}')
+    except:
+        return Response(
+        "error setting parameter",
+        status=400,
+    )
+    return f'set value of {value}'
+
+@app.route("/contrast",methods=['GET'])
+def contrast():
+    args = request.args
+    value = args.get('value')
+    try:
+        cameractrls.main(device=properties["device"], controls=f'contrast={value}')
+    except:
+        return Response(
+        "error setting parameter",
+        status=400,
+    )
+    return f'set value of {value}'
+
+@app.route("/saturation",methods=['GET'])
+def saturation():
+    args = request.args
+    value = args.get('value')
+    try:
+        cameractrls.main(device=properties["device"], controls=f'saturation={value}')
+    except:
+        return Response(
+        "error setting parameter",
+        status=400,
+    )
+    return f'set value of {value}'
+
+
+@app.route("/sharpness",methods=['GET'])
+def sharpness():
+    args = request.args
+    value = args.get('value')
+    try:
+        cameractrls.main(device=properties["device"], controls=f'sharpness={value}')
+    except:
+        return Response(
+        "error setting parameter",
+        status=400,
+    )
+    return f'set value of {value}'

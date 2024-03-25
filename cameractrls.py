@@ -2685,37 +2685,8 @@ def usage():
     print(f'  {sys.argv[0]} -c brightness=128,kiyo_pro_hdr=on,kiyo_pro_fov=wide')
 
 def main(device, controls, list_controls = False ):
-    # try:
-    #     arguments, values = getopt.getopt(sys.argv[1:], 'hd:lLc:', ['help', 'list', 'list-devices'])
-    # except getopt.error as err:
-    #     print(err)
-    #     usage()
-    #     sys.exit(2)
-
-    # if len(arguments) == 0:
-    #     usage()
-    #     sys.exit(0)
-
-    #list_controls = False
     list_devices = False
-    #device = '/dev/video0'
-    #controls = ''
-
-    # for current_argument, current_value in arguments:
-    #     print (current_argument)
-    #     print (current_value)
-    #     if current_argument in ('-h', '--help'):
-    #         usage()
-    #         sys.exit(0)
-    #     elif current_argument in ('-d', '--device'):
-    #         device = current_value
-    #     elif current_argument in ('-l', '--list'):
-    #         list_controls = True
-    #     elif current_argument in ('-L', '--list-devices'):
-    #         list_devices = True
-    #     elif current_argument in ('-c'):
-    #         controls = current_value
-
+    
     if list_devices:
         for d in get_devices(v4ldirs):
             print(d)
@@ -2743,5 +2714,62 @@ def main(device, controls, list_controls = False ):
 
         camera_ctrls.setup_ctrls(ctrlsmap, [])
 
+def main2():
+    try:
+        arguments, values = getopt.getopt(sys.argv[1:], 'hd:lLc:', ['help', 'list', 'list-devices'])
+    except getopt.error as err:
+        print(err)
+        usage()
+        sys.exit(2)
+
+    if len(arguments) == 0:
+        usage()
+        sys.exit(0)
+
+    list_controls = False
+    list_devices = False
+    device = '/dev/video0'
+    controls = ''
+
+    for current_argument, current_value in arguments:
+        if current_argument in ('-h', '--help'):
+            usage()
+            sys.exit(0)
+        elif current_argument in ('-d', '--device'):
+            device = current_value
+        elif current_argument in ('-l', '--list'):
+            list_controls = True
+        elif current_argument in ('-L', '--list-devices'):
+            list_devices = True
+        elif current_argument in ('-c'):
+            controls = current_value
+
+    if list_devices:
+        for d in get_devices(v4ldirs):
+            print(d)
+        sys.exit(0)
+
+    try:
+        fd = os.open(device, os.O_RDWR, 0)
+    except Exception as e:
+        logging.error(f'os.open({device}, os.O_RDWR, 0) failed: {e}')
+        sys.exit(2)
+
+    camera_ctrls = CameraCtrls(device, fd)
+
+    if list_controls:
+        camera_ctrls.print_ctrls()
+
+    if controls != '':
+        ctrlsmap = {}
+        for control in controls.split(','):
+            kv = control.split('=', maxsplit=1)
+            if len(kv) != 2:
+                logging.warning(f'invalid value: {control}')
+                continue
+            ctrlsmap[kv[0]]=kv[1]
+
+        camera_ctrls.setup_ctrls(ctrlsmap, [])
+
 if __name__ == '__main__':
-    main()
+    main2()

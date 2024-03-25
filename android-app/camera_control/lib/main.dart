@@ -67,7 +67,7 @@ class MyAppState extends ChangeNotifier {
   bool _loopActive = false;
 
   void loadConfig() async {
-    getUrl();
+    await getUrl();
     Map<String, dynamic> configuration = await fetchConfig(urlApi);
     panSliderValue = double.parse(configuration['current_pan']);
     tiltSliderValue = double.parse(configuration['current_tilt']);
@@ -75,9 +75,10 @@ class MyAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-    Future<String> getUrl() async {
+  Future<String> getUrl() async {
     final prefs = await SharedPreferences.getInstance();
-    String  url = prefs.getString("url") ?? 'http://192.168.10.106:5000';
+    String url = prefs.getString("url") ?? 'http://192.168.10.106:5000';
+    debugPrint("url get: $url");
     urlApi = url;
     return urlApi;
   }
@@ -167,17 +168,17 @@ class MyAppState extends ChangeNotifier {
         urlOp = '/zoom?value=${value.round()}';
     }
     try {
-      print('executing $urlOp');
+      debugPrint('executing $urlOp');
       final response = await http.get(Uri.parse(urlApi + urlOp));
       if (response.statusCode != 200) {
         message = 'Failed to load set value';
       } else {
         message = 'Success change';
       }
-      print(message);
+      debugPrint(message);
       notifyListeners();
     } on Exception catch (_) {
-      print('Error: failed to fetch configuration URL');
+      debugPrint('Error: failed to fetch configuration URL');
     }
   }
 }
@@ -248,41 +249,12 @@ class ControlPage extends StatelessWidget {
           onPressed: () => {appState.loadConfig()},
           child: const Text("Load current values from cam")),
       Text('pan'),
-      BigCard(sliderValue: sliderPanValue*-1),
+      BigCard(sliderValue: sliderPanValue * -1),
       SliderPan(),
       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Listener(
-          onPointerDown: (details) {
-            appState.setButtonPressed(true);
-            appState.pan(sliderPanValue, 'DECREASE');
-          },
-          onPointerUp: (details) {
-            appState.setButtonPressed(false);
-          },
-          child: OutlinedButton(
-              onPressed: () => {}, child: Icon(Icons.skip_previous)),
-        ),
-        Listener(
-          onPointerDown: (details) {
-            appState.setButtonPressed(true);
-            appState.pan(sliderPanValue, 'RESET');
-          },
-          onPointerUp: (details) {
-            appState.setButtonPressed(false);
-          },
-          child: OutlinedButton(onPressed: () => {}, child: Icon(Icons.repeat)),
-        ),
-        Listener(
-          onPointerDown: (details) {
-            appState.setButtonPressed(true);
-            appState.pan(sliderPanValue, 'INCREASE');
-          },
-          onPointerUp: (details) {
-            appState.setButtonPressed(false);
-          },
-          child:
-              OutlinedButton(onPressed: () => {}, child: Icon(Icons.skip_next)),
-        )
+        ListenerCamera(appState: appState,sliderValue: sliderPanValue,operation: 'DECREASE',icon: Icons.skip_previous, option: 'pan'),
+        ListenerCamera(appState: appState, sliderValue: sliderPanValue, operation: 'RESET', icon: Icons.repeat, option: 'pan'),
+        ListenerCamera(appState: appState, sliderValue: sliderPanValue,  operation: 'INCREASE', icon: Icons.skip_next, option: 'pan')
       ]),
       Text('tilt'),
       BigCard(sliderValue: sliderTiltValue),
@@ -290,39 +262,9 @@ class ControlPage extends StatelessWidget {
       Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Listener(
-            onPointerDown: (details) {
-              appState.setButtonPressed(true);
-              appState.tilt(sliderTiltValue, 'DECREASE');
-            },
-            onPointerUp: (details) {
-              appState.setButtonPressed(false);
-            },
-            child: OutlinedButton(
-                onPressed: () => {}, child: Icon(Icons.skip_previous)),
-          ),
-          Listener(
-            onPointerDown: (details) {
-              appState.setButtonPressed(true);
-              appState.tilt(sliderTiltValue, 'RESET');
-            },
-            onPointerUp: (details) {
-              appState.setButtonPressed(false);
-            },
-            child:
-                OutlinedButton(onPressed: () => {}, child: Icon(Icons.repeat)),
-          ),
-          Listener(
-            onPointerDown: (details) {
-              appState.setButtonPressed(true);
-              appState.tilt(sliderTiltValue, 'INCREASE');
-            },
-            onPointerUp: (details) {
-              appState.setButtonPressed(false);
-            },
-            child: OutlinedButton(
-                onPressed: () => {}, child: Icon(Icons.skip_next)),
-          )
+        ListenerCamera(appState: appState,sliderValue: sliderTiltValue,operation: 'DECREASE',icon: Icons.skip_previous, option: 'tilt'),
+        ListenerCamera(appState: appState, sliderValue: sliderTiltValue, operation: 'RESET', icon: Icons.repeat, option: 'tilt'),
+        ListenerCamera(appState: appState, sliderValue: sliderTiltValue,  operation: 'INCREASE', icon: Icons.skip_next, option: 'tilt')
         ],
       ),
       Text('Zoom'),
@@ -331,42 +273,50 @@ class ControlPage extends StatelessWidget {
       Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Listener(
-            onPointerDown: (details) {
-              appState.setButtonPressed(true);
-              appState.zoom(sliderZoomValue, 'DECREASE');
-            },
-            onPointerUp: (details) {
-              appState.setButtonPressed(false);
-            },
-            child: OutlinedButton(
-                onPressed: () => {}, child: Icon(Icons.skip_previous)),
-          ),
-          Listener(
-            onPointerDown: (details) {
-              appState.setButtonPressed(true);
-              appState.zoom(sliderZoomValue, 'RESET');
-            },
-            onPointerUp: (details) {
-              appState.setButtonPressed(false);
-            },
-            child:
-                OutlinedButton(onPressed: () => {}, child: Icon(Icons.repeat)),
-          ),
-          Listener(
-            onPointerDown: (details) {
-              appState.setButtonPressed(true);
-              appState.zoom(sliderZoomValue, 'INCREASE');
-            },
-            onPointerUp: (details) {
-              appState.setButtonPressed(false);
-            },
-            child: OutlinedButton(
-                onPressed: () => {}, child: Icon(Icons.skip_next)),
-          )
+        ListenerCamera(appState: appState, sliderValue: sliderZoomValue,operation: 'DECREASE',icon: Icons.skip_previous, option: 'zoom'),
+        ListenerCamera(appState: appState, sliderValue: sliderZoomValue, operation: 'RESET', icon: Icons.repeat, option: 'zoom'),
+        ListenerCamera(appState: appState, sliderValue: sliderZoomValue,  operation: 'INCREASE', icon: Icons.skip_next, option: 'zoom')
         ],
       ),
     ]));
+  }
+}
+
+class ListenerCamera extends StatelessWidget {
+  const ListenerCamera(
+      {super.key,
+      required this.appState,
+      required this.sliderValue,
+      required this.operation,
+      required this.icon,
+      required this.option
+      });
+
+  final MyAppState appState;
+  final double sliderValue;
+  final String operation;
+  final IconData icon;
+  final String option;
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: (details) {
+        appState.setButtonPressed(true);
+        switch (option){
+          case 'pan':
+            appState.pan(sliderValue, operation);
+          case 'tilt':
+            appState.tilt(sliderValue, operation);
+          case 'zoom':
+            appState.zoom(sliderValue, operation);
+        }
+      },
+      onPointerUp: (details) {
+        appState.setButtonPressed(false);
+      },
+      child: OutlinedButton(onPressed: () => {}, child: Icon(icon)),
+    );
   }
 }
 
@@ -384,7 +334,7 @@ class _SliderPanState extends State<SliderPan> {
     var currentSliderValue = appState.panSliderValue;
     String message = appState.message;
     return Slider(
-      value: currentSliderValue*-1,
+      value: currentSliderValue * -1,
       min: appState.panMin,
       max: appState.panMax,
       divisions: appState.panMax ~/ appState.panStep,
@@ -470,49 +420,36 @@ class BigCard extends StatelessWidget {
   }
 }
 
-class ConfigPage extends StatelessWidget {
+class ConfigPage extends StatefulWidget {
+  @override
+  State<ConfigPage> createState() => _ConfigPageState();
+}
+
+class _ConfigPageState extends State<ConfigPage> {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
-    return FutureBuilder(future: appState.getUrl(),
-     initialData: "loading url",
-     builder: (BuildContext context, AsyncSnapshot<String> text){
-     return Center(
-      child: Column(
-        children: [
-          Text("Url Api"),
-          TextFormField(
-          decoration: InputDecoration(
-              border: OutlineInputBorder(),
+
+    return FutureBuilder(
+        future: appState.getUrl(),
+        initialData: "loading url",
+        builder: (BuildContext context, AsyncSnapshot<String> text) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('current url saved: ${text.data}'),
+                TextFormField(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      appState.setUrl(value);
+                    },
+                    initialValue: appState.urlApi)
+              ],
             ),
-             onChanged: (value) {
-              appState.setUrl(value);
-            },
-            initialValue: appState.urlApi
-          )
-        ],
-      ),
-     );
-      });
+          );
+        });
   }
-   
-    // var appState = context.watch<MyAppState>();
-    // String urlApi = appState.getUrl();
-    // return Center(
-    //   child: Column(
-    //     children: [
-    //       Text('Url API'),
-    //       TextFormField(
-    //         decoration: InputDecoration(
-    //           border: OutlineInputBorder(),
-    //         ),
-    //         onChanged: (value) {
-    //           appState.setUrl(value);
-    //         },
-    //         initialValue: urlApi;
-    //       ),
-    //     ],
-    //   ),
-    // );
-  //}
 }
