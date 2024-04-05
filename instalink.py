@@ -6,6 +6,8 @@ import sys
 import os 
 import cameractrls
 import re
+from flask_limiter import Limiter,util
+from flask_limiter.util import get_remote_address
 
 # Insta360 Link Options
 properties = {
@@ -31,6 +33,12 @@ properties = {
 
 
 app = Flask(__name__)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
 
 @app.route("/")
 def index():
@@ -51,6 +59,7 @@ def print_properties():
 
 
 @app.route("/pan",methods=['GET'])
+@limiter.limit("4 per second")
 def pan():
     args = request.args
     value = args.get('value')
@@ -66,6 +75,7 @@ def pan():
 
 
 @app.route("/tilt",methods=['GET'])
+@limiter.limit("4 per second")
 def tilt():
     args = request.args
     value = args.get('value')
@@ -80,6 +90,7 @@ def tilt():
     return f'set value of {value}'
 
 @app.route("/zoom",methods=['GET'])
+@limiter.limit("4 per second")
 def zoom():
     args = request.args
     value = args.get('value')
@@ -94,6 +105,7 @@ def zoom():
     return f'set value of {value}'
 
 @app.route("/brightness",methods=['GET'])
+@limiter.limit("4 per second")
 def brightness():
     args = request.args
     value = args.get('value')
@@ -107,6 +119,7 @@ def brightness():
     return f'set value of {value}'
 
 @app.route("/contrast",methods=['GET'])
+@limiter.limit("4 per second")
 def contrast():
     args = request.args
     value = args.get('value')
@@ -120,6 +133,7 @@ def contrast():
     return f'set value of {value}'
 
 @app.route("/saturation",methods=['GET'])
+@limiter.limit("4 per second")
 def saturation():
     args = request.args
     value = args.get('value')
@@ -134,6 +148,7 @@ def saturation():
 
 
 @app.route("/sharpness",methods=['GET'])
+@limiter.limit("4 per second")
 def sharpness():
     args = request.args
     value = args.get('value')
