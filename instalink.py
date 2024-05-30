@@ -20,7 +20,10 @@ properties = {
   "tilt_default": 0,
   "tilt_max": 360000,
   "tilt_min": -324000,
-  "step": 3600,
+  "tilt_step": 3600,
+  "pan_step": 3600,
+  "zoom_step": 10,
+  "image_step": 1,
   "zoom_option": "zoom_absolute",
   "zoom_min": 100,
   "zoom_max": 400,
@@ -47,6 +50,7 @@ def index():
 
 @app.route("/props")
 def print_properties():
+    print("loading values")
     result = cameractrls.main(device=properties["device"], controls='', list_controls = True)
     properties['current_zoom'] = re.search(r"zoom_absolute = (\d+)", result).group(1)
     properties['current_tilt'] = re.search(r"tilt_absolute = (-{0,1}\d+)", result).group(1)
@@ -55,15 +59,45 @@ def print_properties():
     properties['current_contrast'] = re.search(r"contrast = (\d+)", result).group(1)
     properties['current_saturation'] = re.search(r"saturation = (\d+)", result).group(1)
     properties['current_sharpness'] = re.search(r"sharpness = (\d+)", result).group(1)
+    properties['loaded_values'] = True
     return properties
 
+@app.route("/reset",methods=['GET'])
+@limiter.limit("4 per second")
+def reset():
+    pan_option = properties['pan_option']
+    tilt_option = properties['tilt_option']
+    pan_default = properties['pan_default']
+    tilt_default = properties['tilt_default']
+    properties['current_pan'] = pan_default
+    properties['current_tilt'] = tilt_default
+    try:
+        cameractrls.main(device=properties["device"], controls=f'{pan_option}={pan_default}')
+        cameractrls.main(device=properties["device"], controls=f'{tilt_option}={tilt_default}')
+    except:
+        return Response(
+        "error setting parameter",
+        status=400,
+    )
+    return f'reseting values'
 
 @app.route("/pan",methods=['GET'])
 @limiter.limit("4 per second")
 def pan():
     args = request.args
     value = args.get('value')
+    option = args.get('option')
     pan_option = properties['pan_option']
+    if 'loaded_values' not in properties:
+        print_properties()
+    if option is not None:
+        if option == 'inc':
+            value = int(properties['current_pan']) + properties['pan_step']
+        elif option == 'dec':
+            value = int(properties['current_pan']) - properties['pan_step']
+        else:
+            value = properties['pan_default']
+    properties['current_pan'] = value
     try:
         cameractrls.main(device=properties["device"], controls=f'{pan_option}={value}')
     except:
@@ -79,7 +113,18 @@ def pan():
 def tilt():
     args = request.args
     value = args.get('value')
+    option = args.get('option')
     tilt_option = properties['tilt_option']
+    if 'loaded_values' not in properties:
+        print_properties()
+    if option is not None:
+        if option == 'inc':
+            value = int(properties['current_tilt']) + properties['tilt_step']
+        elif option == 'dec':
+            value = int(properties['current_tilt']) - properties['tilt_step']
+        else:
+            value = properties['tilt_default']
+    properties['current_tilt'] = value    
     try:
         cameractrls.main(device=properties["device"], controls=f'{tilt_option}={value}')
     except:
@@ -94,7 +139,18 @@ def tilt():
 def zoom():
     args = request.args
     value = args.get('value')
+    option = args.get('option')
     zoom_option = properties['zoom_option']
+    if 'loaded_values' not in properties:
+        print_properties()
+    if option is not None:
+        if option == 'inc':
+            value = int(properties['current_zoom']) + properties['zoom_step']
+        elif option == 'dec':
+            value = int(properties['current_zoom']) - properties['zoom_step']
+        else:
+            value = properties['zoom_default']
+    properties['current_zoom'] = value
     try:
         cameractrls.main(device=properties["device"], controls=f'{zoom_option}={value}')
     except:
@@ -109,6 +165,17 @@ def zoom():
 def brightness():
     args = request.args
     value = args.get('value')
+    option = args.get('option')
+    if 'loaded_values' not in properties:
+        print_properties()
+    if option is not None:
+        if option == 'inc':
+            value = int(properties['current_brightness']) + properties['image_step']
+        elif option == 'dec':
+            value = int(properties['current_brightness']) - properties['image_step']
+        else:
+            value = properties['brightness']
+    properties['current_brightness'] = value
     try:
         cameractrls.main(device=properties["device"], controls=f'brightness={value}')
     except:
@@ -123,6 +190,17 @@ def brightness():
 def contrast():
     args = request.args
     value = args.get('value')
+    option = args.get('option')
+    if 'loaded_values' not in properties:
+        print_properties()
+    if option is not None:
+        if option == 'inc':
+            value = int(properties['current_contrast']) + properties['image_step']
+        elif option == 'dec':
+            value = int(properties['current_contrast']) - properties['image_step']
+        else:
+            value = properties['contrast']
+    properties['current_contrast'] = value
     try:
         cameractrls.main(device=properties["device"], controls=f'contrast={value}')
     except:
@@ -137,6 +215,17 @@ def contrast():
 def saturation():
     args = request.args
     value = args.get('value')
+    option = args.get('option')
+    if 'loaded_values' not in properties:
+        print_properties()
+    if option is not None:
+        if option == 'inc':
+            value = int(properties['current_saturation']) + properties['image_step']
+        elif option == 'dec':
+            value = int(properties['current_saturation']) - properties['image_step']
+        else:
+            value = properties['saturation']
+    properties['current_saturation'] = value
     try:
         cameractrls.main(device=properties["device"], controls=f'saturation={value}')
     except:
@@ -152,6 +241,17 @@ def saturation():
 def sharpness():
     args = request.args
     value = args.get('value')
+    option = args.get('option')
+    if 'loaded_values' not in properties:
+        print_properties()
+    if option is not None:
+        if option == 'inc':
+            value = int(properties['current_sharpness']) + properties['image_step']
+        elif option == 'dec':
+            value = int(properties['current_sharpness']) - properties['image_step']
+        else:
+            value = properties['sharpness']
+    properties['current_sharpness'] = value
     try:
         cameractrls.main(device=properties["device"], controls=f'sharpness={value}')
     except:
