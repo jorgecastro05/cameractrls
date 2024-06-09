@@ -34,14 +34,21 @@ properties = {
   "sharpness": 50
 }
 
+# Constants
+STEP_MULTIPLIER = 3
+
+def limiter_error(e):
+    return 'limit api reached', 208
 
 app = Flask(__name__)
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://",
+    default_limits=["10000 per hour"],
+    storage_uri="memory://"
 )
+
+app.register_error_handler(429, limiter_error)
 
 @app.route("/")
 def index():
@@ -92,14 +99,15 @@ def pan():
         print_properties()
     if option is not None:
         if option == 'inc':
-            value = int(properties['current_pan']) + properties['pan_step']
+            value = int(properties['current_pan']) + (properties['pan_step'] * STEP_MULTIPLIER)
         elif option == 'dec':
-            value = int(properties['current_pan']) - properties['pan_step']
+            value = int(properties['current_pan']) - (properties['pan_step'] * STEP_MULTIPLIER)
         else:
             value = properties['pan_default']
-    properties['current_pan'] = value
     try:
-        cameractrls.main(device=properties["device"], controls=f'{pan_option}={value}')
+        if(properties['pan_min'] <= value <= properties['pan_max']):
+            cameractrls.main(device=properties["device"], controls=f'{pan_option}={value}')
+            properties['current_pan'] = value
     except:
         return Response(
         "error setting parameter",
@@ -119,14 +127,15 @@ def tilt():
         print_properties()
     if option is not None:
         if option == 'inc':
-            value = int(properties['current_tilt']) + properties['tilt_step']
+            value = int(properties['current_tilt']) + (properties['tilt_step'] * STEP_MULTIPLIER)
         elif option == 'dec':
-            value = int(properties['current_tilt']) - properties['tilt_step']
+            value = int(properties['current_tilt']) - (properties['tilt_step'] * STEP_MULTIPLIER)
         else:
             value = properties['tilt_default']
-    properties['current_tilt'] = value    
     try:
-        cameractrls.main(device=properties["device"], controls=f'{tilt_option}={value}')
+        if(properties['tilt_min'] <= value <= properties['tilt_max']):
+            cameractrls.main(device=properties["device"], controls=f'{tilt_option}={value}')
+            properties['current_tilt'] = value
     except:
         return Response(
         "error setting parameter",
@@ -150,9 +159,10 @@ def zoom():
             value = int(properties['current_zoom']) - properties['zoom_step']
         else:
             value = properties['zoom_default']
-    properties['current_zoom'] = value
     try:
-        cameractrls.main(device=properties["device"], controls=f'{zoom_option}={value}')
+        if(properties['zoom_min'] <= value <= properties['zoom_max']):
+            cameractrls.main(device=properties["device"], controls=f'{zoom_option}={value}')
+            properties['current_zoom'] = value
     except:
         return Response(
         "error setting parameter",
