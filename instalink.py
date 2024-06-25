@@ -31,7 +31,12 @@ properties = {
   "brightness": 50,
   "contrast": 50,
   "saturation": 50,
-  "sharpness": 50
+  "sharpness": 50,
+  "white_balance_temperature_min": 2000,
+  "white_balance_temperature_max": 10000,
+  "white_balance_temperature_default": 6400,
+  "white_balance_temperature_step": 100,
+  "white_balance_automatic": 0
 }
 
 # Constants
@@ -66,6 +71,7 @@ def print_properties():
     properties['current_contrast'] = re.search(r"contrast = (\d+)", result).group(1)
     properties['current_saturation'] = re.search(r"saturation = (\d+)", result).group(1)
     properties['current_sharpness'] = re.search(r"sharpness = (\d+)", result).group(1)
+    properties['current_white_balance'] = re.search(r"white_balance_temperature = (\d+)", result).group(1)
     properties['loaded_values'] = True
     return properties
 
@@ -264,6 +270,32 @@ def sharpness():
     properties['current_sharpness'] = value
     try:
         cameractrls.main(device=properties["device"], controls=f'sharpness={value}')
+    except:
+        return Response(
+        "error setting parameter",
+        status=400,
+    )
+    return f'set value of {value}'
+
+@app.route("/white_balance",methods=['GET'])
+@limiter.limit("4 per second")
+def white_balance():
+    args = request.args
+    value = args.get('value')
+    option = args.get('option')
+    if 'loaded_values' not in properties:
+        print_properties()
+        cameractrls.main(device=properties["device"], controls='white_balance_automatic=0')
+    if option is not None:
+        if option == 'inc':
+            value = int(properties['current_white_balance']) + properties['white_balance_temperature_step']
+        elif option == 'dec':
+            value = int(properties['current_white_balance']) - properties['white_balance_temperature_step']
+        else:
+            value = properties['white_balance_temperature_default']
+    properties['current_white_balance'] = value
+    try:
+        cameractrls.main(device=properties["device"], controls=f'white_balance_temperature={value}')
     except:
         return Response(
         "error setting parameter",
