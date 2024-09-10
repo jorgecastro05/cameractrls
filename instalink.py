@@ -2,6 +2,7 @@
 
 from flask import Flask, request, Response
 from flask import send_from_directory 
+import logging
 import sys
 import os 
 import cameractrls
@@ -14,12 +15,12 @@ properties = {
   "device": "/dev/v4l/by-id/usb-Insta360_Insta360_Link-video-index0",
   "pan_option": "pan_absolute",
   "pan_default": 0,
-  "pan_max": 522000,
-  "pan_min": -522000,
+  "pan_max": 486000,
+  "pan_min": -486000,
   "tilt_option": "tilt_absolute",
   "tilt_default": 0,
-  "tilt_max": 360000,
-  "tilt_min": -324000,
+  "tilt_max": 324000,
+  "tilt_min": -140400,
   "tilt_step": 3600,
   "pan_step": 3600,
   "zoom_step": 10,
@@ -46,6 +47,7 @@ def limiter_error(e):
     return 'limit api reached', 208
 
 app = Flask(__name__)
+app.logger.setLevel(logging.WARN)
 limiter = Limiter(
     get_remote_address,
     app=app,
@@ -73,6 +75,7 @@ def print_properties():
     properties['current_sharpness'] = re.search(r"sharpness = (\d+)", result).group(1)
     properties['current_white_balance'] = re.search(r"white_balance_temperature = (\d+)", result).group(1)
     properties['loaded_values'] = True
+    app.logger.info(properties)
     return properties
 
 @app.route("/reset",methods=['GET'])
@@ -111,7 +114,8 @@ def pan():
         else:
             value = properties['pan_default']
     try:
-        if(properties['pan_min'] <= value <= properties['pan_max']):
+        app.logger.info(f'current pan is {value}')
+        if(properties['pan_min'] < value < properties['pan_max']):
             cameractrls.main(device=properties["device"], controls=f'{pan_option}={value}')
             properties['current_pan'] = value
     except:
@@ -139,7 +143,8 @@ def tilt():
         else:
             value = properties['tilt_default']
     try:
-        if(properties['tilt_min'] <= value <= properties['tilt_max']):
+        app.logger.info(f'current tilt is {value}')
+        if(properties['tilt_min'] < value < properties['tilt_max']):
             cameractrls.main(device=properties["device"], controls=f'{tilt_option}={value}')
             properties['current_tilt'] = value
     except:
